@@ -132,7 +132,7 @@ class BxMSSQLMData
 	protected function getContentId($iId){
 		$sQuery = $this -> _oDb -> prepare("SELECT `p`.`content_id` FROM  `sys_accounts` AS  `a` 
 											LEFT JOIN  `sys_profiles` AS  `p` ON `a`.`id` =  `p`.`account_id` 
-											WHERE  `mig_id` = ? AND  `p`.`type` =  'bx_persons' LIMIT 1", $iId);
+											WHERE  `{$this -> _sTransferFieldIdent}` = ? AND  `p`.`type` =  'bx_persons' LIMIT 1", $iId);
 											
 		return $this -> _oDb -> getOne($sQuery);
 	}
@@ -146,7 +146,7 @@ class BxMSSQLMData
 	{
 		$sQuery = $this -> _oDb -> prepare("SELECT `p`.`id` FROM  `sys_accounts` AS  `a` 
 											LEFT JOIN  `sys_profiles` AS  `p` ON `a`.`id` =  `p`.`account_id` 
-											WHERE  `mig_id` = ? AND  `p`.`type` =  'bx_persons' LIMIT 1", $iId);
+											WHERE  `{$this -> _sTransferFieldIdent}` = ? AND  `p`.`type` =  'bx_persons' LIMIT 1", $iId);
 											
 		return $this -> _oDb -> getOne($sQuery);
 	}
@@ -256,7 +256,7 @@ class BxMSSQLMData
 			if (!$this -> isKeyPreKeyExits($sName))
 			{
 				$sQuery = $this -> _oDb -> prepare("INSERT INTO `sys_form_pre_lists` (`id`, `module`, `key`, `title`, `use_for_sets`, `extendable`) VALUES
-												(NULL, 'bx_persons', ?, ?, 0, 1)", $sName, '_bx_' . $sName . '_pre_lists_cats');			
+												(NULL, 'bx_persons', ?, ?, 0, 1)", $sName, '_bx_' . $sName . '_pre_lists_cats');
 				$this -> _oLanguage -> addLanguageString('_bx_' . $sName . '_pre_lists_cats', $sTitle);
 				$this -> _oDb -> query($sQuery);
 				
@@ -372,7 +372,7 @@ class BxMSSQLMData
 	 *  @param int $sTableKeywords table name in UNA for tags migration
 	 *  @return void
 	 */
-	protected function trasnferTags($iObjectId, $iNewObjectId, $sType, $sTableKeywords)
+	protected function transferTags($iObjectId, $iNewObjectId, $sType, $sTableKeywords)
 	{
 		$aTags = $this -> _mDb -> getAll("SELECT `Tag` FROM `sys_tags` WHERE `ObjID`=:id AND `Type`=:type", array('id' => $iObjectId, 'type' => $sType));
 		if (empty($aTags))
@@ -381,109 +381,7 @@ class BxMSSQLMData
 		foreach($aTags as $aTag)
 			$this -> _oDb -> query("INSERT IGNORE INTO `{$sTableKeywords}` SET `keyword`=:keyword, `object_id`=:id", array('keyword' => $aTag['Tag'], 'id' => $iNewObjectId));
 	}
-	
-	/**
-	 *  Transfer comments for module's items
-	 *  
-	 *  @param int $iObject object ID in UNA
-	 *  @param int $iEntryId object ID in G-Med
-	 *  @param string $sType module name for transfer @uses BxMSSQLMConfig::_aMigrationModules
-	 *  @return int transferred comments number
-	 */
-	protected function transferComments($iObject, $iEntryId, $sType = 'photos')
-	{
-		
-		switch($sType)
-		{
-			case 'photos': 
-							$sCmtsTable = 'bx_photos_cmts';
-							$sTable = 'bx_albums_cmts_media';
-							break;
-			case 'photo_albums': 
-							$sCmtsTable = 'bx_photos_cmts_albums';
-							$sTable = 'bx_albums_cmts';
-							break;
-			case 'videos': 
-							$sCmtsTable = 'bx_videos_cmts';
-							$sTable = 'bx_albums_cmts_media';
-							break;
-			case 'video_albums': 
-							$sCmtsTable = 'bx_videos_cmts_albums';
-							$sTable = 'bx_albums_cmts';
-							break;
-			case 'blogs': 
-							$sCmtsTable = 'bx_blogs_cmts';
-							$sTable = 'bx_posts_cmts';
-							break;
-			case 'groups': 
-							$sCmtsTable = 'bx_groups_cmts';
-							$sTable = 'bx_groups_cmts';
-							break;
-			case 'events': 
-							$sCmtsTable = 'bx_events_cmts';
-							$sTable = 'bx_events_cmts';
-							break;
-			case 'polls': 
-							$sCmtsTable = 'bx_poll_cmts';
-							$sTable = 'bx_polls_cmts';
-							break;
-			case 'files': 
-							$sCmtsTable = 'bx_files_cmts';
-							$sTable = 'bx_files_cmts';
-							break;
-			case 'market': 
-							$sCmtsTable = 'bx_store_cmts';
-							$sTable = 'bx_market_cmts';
-							break;
-			case 'timeline': 
-							$sCmtsTable = 'bx_wall_comments';
-							$sTable = 'bx_timeline_comments';
-							break;
-		}
-		
-		$aComments = $this -> _mDb -> getAll("SELECT * FROM `{$sCmtsTable}` WHERE `cmt_object_id` = :id ORDER BY `cmt_id` ASC", array('id' => $iEntryId));
-		
-		$iCommnets = 0;
-		$aCommentsArray = array();
-		foreach($aComments as $iKey => $aValue)
-		{
-			$iProfileId = $this -> getProfileId($aValue['cmt_author_id']);			
-			if ($iProfileId)
-			{
-				$bIscmtsArray = $aValue['cmt_parent_id'] && isset($aCommentsArray[$aValue['cmt_parent_id']]);
-				$this -> _oDb -> query("INSERT INTO `{$sTable}` (`cmt_id`, `cmt_parent_id`, `cmt_vparent_id`, `cmt_object_id`, `cmt_author_id`, `cmt_level`, `cmt_text`, `cmt_time`, `cmt_replies`, `cmt_rate`, `cmt_rate_count`)
-									VALUES	(NULL, :parent_id, :vparent_id, :object, :user, :level, :message, :time, :replies, :rate, :rate_count)", 
-									array(
-											'parent_id'	=> $bIscmtsArray ? $aCommentsArray[$aValue['cmt_parent_id']]['id'] : 0,
-											'vparent_id' => $bIscmtsArray ? ($aCommentsArray[$aValue['cmt_parent_id']]['vparent'] ? $aCommentsArray[$aValue['cmt_parent_id']]['vparent'] : $aCommentsArray[$aValue['cmt_parent_id']]['id']) : 0,
-											'object' => $iObject,
-											'user' => $iProfileId, 
-											'message' => $aValue['cmt_text'], 
-											'time' => strtotime($aValue['cmt_time']),
-											'replies' => $aValue['cmt_replies'],
-											'rate' => $aValue['cmt_rate'],
-											'rate_count' => $aValue['cmt_rate_count'],
-											'level' => isset($aCommentsArray[$aValue['cmt_parent_id']]) && $aCommentsArray[$aValue['cmt_parent_id']] ? $aCommentsArray[$aValue['cmt_parent_id']]['level'] + 1 : 0
-										));
-				
-				$aCommentsArray[$aValue['cmt_id']] = array(
-																'id' => $this -> _oDb -> lastId(),
-																'level' => $bIscmtsArray ? (int)$aCommentsArray[$aValue['cmt_parent_id']]['level'] + 1 : 0,
-																'vparent' => 
-																			$bIscmtsArray ? 
-																			(
-																				$aCommentsArray[$aValue['cmt_parent_id']]['vparent'] ? $aCommentsArray[$aValue['cmt_parent_id']]['vparent'] :  $aCommentsArray[$aValue['cmt_parent_id']]['id']
-																			) : 0 
-															);
-				$iCommnets++;				
-			}
-		}
-		
-		return $iCommnets;
-	}
 
-	
-	
 	/**
 	* Create migration field in main table for transferring content from G-Med to UNA and contains id of the object in G-Med
 	* @return mixed

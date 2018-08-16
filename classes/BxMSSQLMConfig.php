@@ -39,11 +39,11 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
 					'plugins' => array(
 						'bx_persons' => 'Persons',
 			        ),
-                ),/*
-				'blogs' => array(
+                ),
+				'posts' => array(
                     'table_name'		=> 'Channels_Posts',
-                    'migration_class'	=> 'BxMSSQLMBlogs',
-					'type'				=> 'blog',
+                    'migration_class'	=> 'BxMSSQLMPosts',
+					'type'				=> 'post',
 					'keywords'			=> 'bx_posts_meta_keywords',
 			        'dependencies' => array(
                 		'profiles',
@@ -52,7 +52,7 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
 						'bx_persons'	=> 'Persons',
 						'bx_posts'		=> 'Posts'			
 			        ),
-                ),				
+                ),/*
 				'polls' => array(
                     'table_name'		=> 'PostTest',
                     'migration_class'	=> 'BxMSSQLMPolls',

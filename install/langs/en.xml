@@ -111,5 +111,6 @@
 	<string name="_bx_mssql_migration_successfully_cleaned"><![CDATA[Table is successfully cleaned!]]></string>
 	<string name="_bx_mssql_migration_successfully_removed"><![CDATA[{0} records were successfully removed!]]></string>
 	<string name="_bx_mssql_migration_nothing_removed"><![CDATA[Nothing was removed!]]></string>
+	<string name="_bx_mssql_migration_data_posts"><![CDATA[Posts, Comments, Files]]></string>
 	<string name="_bx_mssql_migration_remove_profile_content_confirmation"><![CDATA[If you remove profiles, it will remove all transferred profiles' content also. Continue?]]></string>
 </resources>
