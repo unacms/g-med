@@ -17,6 +17,7 @@ class BxMSSQLMTransfers extends BxTemplGrid
 		$this -> _oModule = BxDolModule::getInstance('bx_mssql_migration');
 		$this -> _aConfirmMessages = array(
 												'run' => _t('_bx_mssql_migration_start_transfer_confirmation'),
+												'update' => _t('_bx_mssql_migration_update_confirmation'),
 												'clean' => _t('_bx_mssql_migration_clean_confirmation'),
 												'remove' => _t('_bx_mssql_migration_remove_content_confirmation'),
 												'remove_profiles' => _t('_bx_mssql_migration_remove_profile_content_confirmation')
@@ -55,7 +56,22 @@ class BxMSSQLMTransfers extends BxTemplGrid
 			'blink' => $aElements,
 		));		   
 	}
-	
+
+    public function performActionUpdate()
+    {
+        $sMessage = MsgBox( _t('_bx_mssql_migration_data_was_set'));
+        if ($this -> _oModule -> initDb())
+            $this -> _oModule -> createMigration();
+        else
+            $sMessage = MsgBox( _t('_bx_mssql_migration_error_data_was_not_set'));
+
+
+        echoJson(array(
+            'msg' => $sMessage,
+            'grid' => $this -> getCode(false)
+        ));
+    }
+
 	protected function _getFilterControls ()
     {
         return '';

@@ -85,7 +85,7 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 			if ($iProfileID) 				
 				$sStart = " AND [ID] > {$iProfileID}";
 
-			$aResult = $this -> _mDb -> getAll("SELECT TOP (1000) * FROM ["  . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] WHERE [ID] IN (75054, 4, 10396, 642945, 1142515, 1143586, 1144789, 1148522, 73231, 120003, 120332, 120142, 1148522, 84831, 80125, 85834, 77468, 74028, 84310, 84359, 84159, 1148522, 120021, 84047, 84118, 22184, 474661, 81226, 83461, 76859, 84742, 1148708, 81393,43845, 81983,119890,72620,82167,640807) AND [Email] <> '' OR (StateID <> '' AND CityID <> '') {$sStart} ORDER BY ID ASC");
+			$aResult = $this -> _mDb -> getAll("SELECT * FROM ["  . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] WHERE [Email] <> '' {$sStart} ORDER BY ID ASC"); /* WHERE [ID] IN (75054, 4, 10396, 642945, 1142515, 1143586, 1144789, 1148522, 73231, 120003, 120332, 120142, 1148522, 84831, 80125, 85834, 77468, 74028, 84310, 84359, 84159, 1148522, 120021, 84047, 84118, 22184, 474661, 81226, 83461, 76859, 84742, 1148708, 81393,43845, 81983,119890,72620,82167,640807) AND  OR (StateID <> '' AND CityID <> '') */
 
 			$oLanguage = BxDolLanguages::getInstance();
 			foreach($aResult as $iKey => $aValue)

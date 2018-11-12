@@ -42,9 +42,9 @@ class BxMSSQLMPosts extends BxMSSQLMData
 			
 		$this -> createMIdField();
         $sStart = '';
-		/*$iPostId = $this -> getLastMIDField();
+		$iPostId = $this -> getLastMIDField();
 		if ($iPostId)
-			$sStart = " AND [ID] >= {$iPostId}";*/
+			$sStart = " AND [ID] >= {$iPostId}";
 		
 		$aResult = $this -> _mDb -> getAll("SELECT * FROM [" . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] {$sStart} WHERE [MainParentID] IS NULL ORDER BY [ID]");
 		
@@ -98,14 +98,14 @@ class BxMSSQLMPosts extends BxMSSQLMData
 			
 	    	$this -> exportFiles($iPostId, $aValue['ID'], $iProfileId);
 						
-			//$iCmts = $this -> transferComments($iPostId, (int)$aValue['ID']);
+			$iCmts = $this -> transferComments($iPostId, (int)$aValue['ID']);
 			$this -> _iTransferred++;
 						
 			$this -> _oDb ->  query("UPDATE `{$this -> _sTableWithTransKey}` SET `comments` = :cmts WHERE `id` = :id", array('id' => $iPostId, 'cmts' => $iCmts));
 			
         }
 
-        //$this -> setResultStatus(_t('_bx_dolphin_migration_started_migration_blogs_finished', $this -> _iTransferred));
+        $this -> setResultStatus(_t('_bx_dolphin_migration_started_migration_blogs_finished', $this -> _iTransferred));
         return BX_MIG_SUCCESSFUL;
     }
 

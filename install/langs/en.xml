@@ -9,7 +9,7 @@
 	<string name="_bx_mssql_migration_cpt_update"><![CDATA[Update]]></string>
 	<string name="_bx_mssql_migration_error_data_was_not_set"><![CDATA[Configuration was not defined]]></string>
 	<string name="_bx_mssql_migration_error_config_file_was_not_found"><![CDATA[Sorry configuration file was not found, please check path to the MSSQLM Script!]]></string>
-	<string name="_bx_mssql_migration_data_was_set"><![CDATA[MSSQLM Configuration was successfully set. Go to Data Transfer area to continue!]]></string>
+	<string name="_bx_mssql_migration_data_was_set"><![CDATA[MSSQLM Configuration was successfully set]]></string>
 	<string name="_bx_mssql_migration_avaialble_modules_to_transfer"><![CDATA[Available content for transfer]]></string>
 	<string name="_bx_mssql_migration_no_data_to_transfer"><![CDATA[No data to transfer]]></string>  
 	<string name="_bx_mssql_migration_modules_name"><![CDATA[Data]]></string>  
@@ -113,4 +113,6 @@
 	<string name="_bx_mssql_migration_nothing_removed"><![CDATA[Nothing was removed!]]></string>
 	<string name="_bx_mssql_migration_data_posts"><![CDATA[Posts, Comments, Files]]></string>
 	<string name="_bx_mssql_migration_remove_profile_content_confirmation"><![CDATA[If you remove profiles, it will remove all transferred profiles' content also. Continue?]]></string>
+	<string name="_bx_mssql_migration_update_transfer"><![CDATA[Get Data for transfer]]></string>
+	<string name="_bx_mssql_migration_update_confirmation"><![CDATA[If you already transferred data, you may lost records about it in table below. Continue?]]></string>
 </resources>

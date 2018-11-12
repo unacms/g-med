@@ -27,6 +27,7 @@ INSERT INTO `sys_grid_fields` (`object`, `name`, `title`, `width`, `translatable
 
 INSERT INTO `sys_grid_actions` (`object`, `type`, `name`, `title`, `icon`, `icon_only`, `confirm`, `order`) VALUES
 ('bx_mssql_migration_transfers', 'bulk', 'run', '_bx_mssql_migration_start_transfer', '', 0, 1, 1),
+('bx_mssql_migration_transfers', 'independent', 'update', '_bx_mssql_migration_update_transfer', '', 0, 1, 2),
 ('bx_mssql_migration_transfers', 'single', 'remove', '_bx_mssql_migration_remove_content', 'trash', 1, 1, 2),
 ('bx_mssql_migration_transfers', 'single', 'clean', '_bx_mssql_migration_clean', 'eraser ', 1, 1, 1);
 

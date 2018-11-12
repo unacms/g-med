@@ -26,13 +26,12 @@ class BxMSSQLMStudioPage extends BxTemplStudioModule
 		$this -> _oModule = BxDolModule::getInstance($sModule);
 
 		$this->aMenuItems = array(
-            array('name' => 'settings', 'icon' => 'cogs', 'title' => '_bx_mssql_migration_cpt_settings'),
-            array('name' => 'config', 'icon' => 'exchange', 'title' => '_bx_mssql_migration_cpt_transfer_data'),
-        );	
-		
-		$this -> _oModule -> _oTemplate -> addStudioJs(array('transfer.js', 'BxDolGrid.js'));
-		$this -> _oModule -> _oTemplate -> addStudioCss(array('main.css'));
-     } 
+            array('name' => 'config', 'icon' => 'exchange-alt', 'title' => '_bx_mssql_migration_cpt_transfer_data'),
+        );
+
+        $this -> _oModule -> _oTemplate -> addStudioJs(array('jquery-ui/jquery-ui.custom.min.js', 'transfer.js', 'BxDolGrid.js'));
+        $this -> _oModule -> _oTemplate -> addStudioCss(array('main.css'));
+    }
 	
 	public function saveData($sPath)
 	{
