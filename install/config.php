@@ -17,12 +17,12 @@ $aConfig = array(
     'name' => 'bx_mssql_migration',
     'title' => 'MSSQL Migration',
     'note' => 'Migration Tool',
-    'version' => '9.0.0',
+    'version' => '9.0.5',
     'vendor' => 'Boonex',
 	'help_url' => 'http://feed.una.io/?section={module_name}',
 
     'compatible_with' => array(
-        '9.0.0-RC8'
+        '9.0.x'
     ),
 
     /**
