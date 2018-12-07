@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources name="en" flag="gb" title="English">
-	<string name="_bx_mssql_migration_wgt_cpt"><![CDATA[MSSQLM Migration]]></string>
-	<string name="_bx_mssql_migration_stg_cpt_type"><![CDATA[MSSQLM Migration]]></string>	
+	<string name="_bx_mssql_migration_wgt_cpt"><![CDATA[MSSQL Migration]]></string>
+	<string name="_bx_mssql_migration_stg_cpt_type"><![CDATA[MSSQL Migration]]></string>
 	<string name="_bx_mssql_migration_cpt_settings"><![CDATA[Settings]]></string>
 	<string name="_bx_mssql_migration_cpt_transfer_data"><![CDATA[Data Transfer]]></string>
 	<string name="_bx_mssql_migration_cpt_put_path"><![CDATA[Define path to the root MSSQLM's folder]]></string>  
