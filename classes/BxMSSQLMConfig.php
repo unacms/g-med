@@ -50,9 +50,35 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
                      ),
 					 'plugins' => array(
 						'bx_persons'	=> 'Persons',
-						'bx_posts'		=> 'Posts'			
+						'bx_posts'		=> 'Posts'
 			        ),
-                ),/*
+                ),
+                'channels' => array(
+                    'table_name'		=> 'Channels',
+                    'migration_class'	=> 'BxMSSQLMChannels',
+                    'dependencies' => array(
+                        'profiles',
+                        'posts'
+                    ),
+                    'plugins' => array(
+                        'bx_persons' => 'Persons',
+                        'bx_posts'	 => 'Posts'
+                    ),
+                ),
+                'groups' => array(
+                    'table_name'		=> 'Channels',
+                    'migration_class'	=> 'BxMSSQLMGroups',
+                    'dependencies' => array(
+                        'profiles',
+                        'posts'
+                    ),
+                    'plugins' => array(
+                        'bx_persons' => 'Persons',
+                        'bx_posts'	 => 'Posts',
+                        'bx_groups' => 'Groups'
+                    ),
+                ),
+        /*
 				'polls' => array(
                     'table_name'		=> 'PostTest',
                     'migration_class'	=> 'BxMSSQLMPolls',

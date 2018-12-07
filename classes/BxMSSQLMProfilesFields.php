@@ -217,7 +217,7 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 			}
 			  
 			//continue;
-			if ($this -> isFieldTransfered($sTransferName))
+			if ($this -> isFieldTransferred($sTransferName))
 				continue;
 			   
 			$iKeyID = time() + $i++; // unique language keys postfix			
@@ -275,11 +275,11 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 			
 		$this -> migrateProfileFieldsInfo();
 			
-		//$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_profile_fields_finished', $this -> _iTransferred));
+		$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_profile_fields_finished', $this -> _iTransferred));
 		return BX_MIG_SUCCESSFUL;
 	}
 
-	private function isFieldTransfered($sName)
+	private function isFieldTransferred($sName)
 	{
 		$sQuery = $this -> _oDb -> prepare("SELECT COUNT(*) FROM `sys_form_inputs` WHERE `object` = 'bx_person' AND `module` = 'custom' AND `name` = ? LIMIT 1", $sName);
 		return (int)$this -> _oDb -> getOne($sQuery) > 0;
@@ -369,7 +369,7 @@ WHERE [USERS].[ID] = 2770
 
 	private function convertValues($sFieldName, $aFiled, $iMigId)
 	{
-        $aUser = $this -> _mDb -> getRow("SELECT * FROM [Users] WHERE [ID] = {$iMigId}");
+        $aUser = $this -> _mDb -> getRow("SELECT DoctorID, CountryID, CityID, StateID FROM [Users] WHERE [ID] = {$iMigId}");
         if (empty($aUser))
             return false;
 
@@ -398,7 +398,8 @@ WHERE [USERS].[ID] = 2770
 	 */
 	private function migrateProfileFieldsInfo()
     {
-		$sQuery = "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` <> ''";
+		echo "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` <> '' ORDER BY `id` LIMIT 1, 200000";
+        $sQuery = "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` != 0 ORDER BY `id` LIMIT 1, 200000";
         $aAccounts = $this -> _oDb -> getAll($sQuery);
 
 		foreach($aAccounts as $iKey => $aProfile)
@@ -481,7 +482,7 @@ WHERE [USERS].[ID] = 2770
 
 	function transferStates()
     {
-        $aStates = $this -> _mDb -> getPairs("SELECT * FROM [States] ORDER BY [ID]", 'ID', 'StateName');
+        $aStates = $this -> _mDb -> getPairs("SELECT ID, StateName FROM [States] ORDER BY [ID]", 'ID', 'StateName');
         If (empty($aStates))
             return FALSE;
 
@@ -490,7 +491,7 @@ WHERE [USERS].[ID] = 2770
 
     function transferInterests()
     {
-        $aInterests = $this -> _mDb -> getPairs("SELECT * FROM [Interests] ORDER BY [ID]", 'ID', 'InterestName');
+        $aInterests = $this -> _mDb -> getPairs("SELECT ID, InterestName FROM [Interests] ORDER BY [ID]", 'ID', 'InterestName');
         If (empty($aInterests))
             return FALSE;
 
@@ -499,7 +500,7 @@ WHERE [USERS].[ID] = 2770
 
     function transferCities()
     {
-        $aCities = $this -> _mDb -> getPairs("SELECT * FROM [Cities] ORDER BY [ID]", 'ID', 'CityName');
+        $aCities = $this -> _mDb -> getPairs("SELECT ID,CityName FROM [Cities] ORDER BY [ID]", 'ID', 'CityName');
 		If (empty($aCities))
             return FALSE;
 
@@ -509,7 +510,7 @@ WHERE [USERS].[ID] = 2770
 
     function transferExpertises()
     {
-        $aExpertises = $this -> _mDb -> getPairs("SELECT * FROM [Expertises] ORDER BY [ID]", 'ID', 'ExpertiseName');
+        $aExpertises = $this -> _mDb -> getPairs("SELECT ID,ExpertiseName FROM [Expertises] ORDER BY [ID]", 'ID', 'ExpertiseName');
         If (empty($aExpertises))
             return FALSE;
 
@@ -518,7 +519,7 @@ WHERE [USERS].[ID] = 2770
 
     function transferSubExpertises()
     {
-        $aSubExpertises = $this -> _mDb -> getPairs("SELECT * FROM [SubExpertises] ORDER BY [ID]", 'ID', 'SubExpertiseName');
+        $aSubExpertises = $this -> _mDb -> getPairs("SELECT ID, SubExpertiseName FROM [SubExpertises] ORDER BY [ID]", 'ID', 'SubExpertiseName');
         If (empty($aSubExpertises))
             return FALSE;
 
@@ -527,7 +528,7 @@ WHERE [USERS].[ID] = 2770
 
     function transferLanguages()
     {
-        $aLanguages = $this -> _mDb -> getPairs("SELECT * FROM [Languages] ORDER BY [ID]", 'ID', 'LanguageName');
+        $aLanguages = $this -> _mDb -> getPairs("SELECT ID, LanguageName FROM [Languages] ORDER BY [ID]", 'ID', 'LanguageName');
         If (empty($aLanguages))
             return FALSE;
 

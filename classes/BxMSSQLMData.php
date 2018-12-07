@@ -151,6 +151,13 @@ class BxMSSQLMData
 		return $this -> _oDb -> getOne($sQuery);
 	}
 
+    protected function getAccountIdByContentId(){
+        $sQuery = $this -> _oDb -> prepare("SELECT `account_id` FROM  `sys_profiles` 
+											WHERE  `content_id` = ? AND  `type` =  'bx_persons' LIMIT 1", $iId);
+
+        return $this -> _oDb -> getOne($sQuery);
+    }
+
 	/**
 	* Check if the module was transfered
 	* @param string $sModule name from the list @uses  BxMSSQLMConfig::_aMigrationModules
@@ -163,36 +170,7 @@ class BxMSSQLMData
 				: false;
 	}
 	
-	/**
-	* Returns list of the fields which should be transferred to Persons module
-	* @return array list of the fields names
-	*/
-	protected function getAssocFields()
-	{
-		$aFields = array();
-		$aExclude = array('Status', 'Couple', 'Captcha', 'aff_num', 'TermsOfUse', 'UserStatus', 'UserStatusMessage', 'UserStatusMessageWhen', 'Agree', 'Tags', 'Age', 'Featured', 'Keyword', 'Location', 'ProfilePhoto');
-		$sWhere = "";
-		if (!empty($aExclude))
-			$sWhere = " AND `Name` NOT IN ('" . implode("','" , $aExclude) . "')";
-			
-		$aItems = $this -> _mDb -> getAll("SELECT * FROM `sys_profile_fields` WHERE `Type` != 'block' {$sWhere}");
-	
-		foreach($aItems as $iKey => $aValue)
-		{
-				$aFields[$aValue['Name']] = array(
-					'name' => $aValue['Name'],
-					'type' => $aValue['Type'],
-					'required' => $aValue['Mandatory'],					
-					'title' => "_FieldCaption_{$aValue['Name']}_Edit",
-					'add' =>  (int)$aValue['JoinBlock'] !=0,
-					'edit' =>  (int)$aValue['EditOwnBlock'] !=0,
-					'view' =>  $aValue['ViewVisBlock'] !=0,
-					'values' => $aValue['Values']
-				);							
-		}
-		
-		return $aFields;
-	}
+
 	/**
 	 *  Check if the list already exists in una pre values list 
 	 *  
@@ -203,38 +181,7 @@ class BxMSSQLMData
 	{
 		return $this -> _oDb -> getOne("SELECT COUNT(*) FROM `sys_form_pre_lists` WHERE `key` = :key", array('key' => $sName)) == 1;
 	}
-	/**
-	 *  Adds category to existed list 
-	 *  
-	 *  @param string $sName category title
-	 *  @param string $sPrefix prefix for the module which should be used for new category (depends on module)
-	 *  @param int $sCategory module's category's pre values Name
-	 *  @return string value of the added category
-	 */
-	protected function transferCategory($sName, $sPrefix, $sCategory)
-	{
-		if (strpos($sName, ';') !== false)
-			$sName = substr($sName, 0, strpos($sName, ';'));
-		
-		$sTitle = str_replace(' ', '_', $sName);
-		$aValues = $this -> _oDb -> getRow("SELECT * FROM `sys_form_pre_values` WHERE `Key` = :cat AND `LKey` LIKE CONCAT('%', :value, '%') LIMIT 1", array('cat' => $sCategory, 'value' => $sTitle));
 
-		if (!empty($aValues))
-			return $aValues['Value'];
-		
-		$aValues = $this -> _oDb -> getRow("SELECT MAX(`Value`) + 1 as `Value`, MAX(`Order`) + 1 as `Order` FROM `sys_form_pre_values` WHERE `Key` = :cat", array('cat' => $sCategory));
-		
-		$sQuery = $this -> _oDb -> prepare("
-			INSERT INTO `sys_form_pre_values` SET
-				`Key`	= ?, 
-				`Value`	= ?,
-				`Order`	= ?,
-				`LKey`	= ?", $sCategory, $aValues['Value'], $aValues['Order'], "_{$sPrefix}_cat_{$sTitle}");
-				
-		$this -> _oDb -> query($sQuery);
-		BxDolStudioLanguagesUtils::getInstance() -> addLanguageString("_{$sPrefix}_cat_{$sTitle}", $sName);
-		return $aValues['Value'];
-	}
 	/**
 	 *  Transfer fields lists with translations 
 	 *  
@@ -304,24 +251,6 @@ class BxMSSQLMData
 			
 		return "#!{$sName}";
 	}
-	/**
-	 *  Returns pre values array by list name in pairs format
-	 *  
-	 *  @param string $sName name of the list
-	 *  @param string $sField array's index field name
-	 *  @param string $sValue array's value field name
-	 *  @param int $iStart  -  allows to set start value and get values above it only
-	 *  @return array 
-	 */
-	protected function getPreValuesBy($sName, $sField = 'Order', $sValue = 'LKey', $iStart = 0)
-	{
-		$sStart = '';
-		if ($iStart)
-			$sStart = "AND `$sField` >  $iStart";
-		
-		$sQuery = $this -> _mDb -> prepare("SELECT * FROM `sys_pre_values` WHERE `Key` = ? {$sStart} ORDER BY `Order`", $sName);
-		return $this -> _mDb -> getPairs($sQuery, $sField, $sValue);
-	}
 	
 	/**
 	 *  Returns default language name/id
@@ -334,52 +263,6 @@ class BxMSSQLMData
 		$aLang = $this -> _mDb -> getPairs("SELECT * FROM `sys_localization_languages` ORDER BY `id`", 'Name', 'ID'); 
 		$sDefultLang = $this -> _mDb -> getParam('lang_default'); 
 		return $bName ? $sDefultLang : $aLang[$sDefultLang];
-	}
-	/**
-	 *  Returns translations for all existed languages on G-Med by language key
-	 *  
-	 *  @param string $LKey language key
-	 *  @return array 
-	 */
-	protected function getLKeyTranslations($LKey)
-	{
-		return $this -> _mDb -> getPairs("SELECT `l`.`Name`, `s`.`String`, `l`.`ID`
-										FROM `sys_localization_keys` as `k`
-										LEFT JOIN `sys_localization_strings` as `s` ON `k`.`ID` = `s`.`IDKey`
-										LEFT JOIN `sys_localization_languages` as `l` ON `s`.`IDLanguage` = `l`.`ID`
-										WHERE `k`.`Key` = :key", 'Name', 'String', array('key' => $LKey));
-	}
-	
-	/**
-	 *  Returns pre values field value of defined field, by Key and Value
-	 *  
-	 *  @param string $sKey Key name
-	 *  @param mixed $mixedValue Value 
-	 *  @param string $sField field name
-	 *  @return mixed value
-	 */
-	public function getPreValuesFieldBy($sKey, $mixedValue, $sField = 'Order')
-	{
-		return $this -> _mDb -> getOne("SELECT `{$sField}` FROM `sys_pre_values` WHERE `Key` = ? AND `Value` = ? LIMIT 1", $sName, $mixedValue);
-	}
-	
-	/**
-	 *  Transfer Tags from the module, to meta 
-	 *  
-	 *  @param int $iObjectId module's item ID in G-Med
-	 *  @param int $iNewObjectId module's item ID in UNA
-	 *  @param int $sType module's  prefix in G-Med
-	 *  @param int $sTableKeywords table name in UNA for tags migration
-	 *  @return void
-	 */
-	protected function transferTags($iObjectId, $iNewObjectId, $sType, $sTableKeywords)
-	{
-		$aTags = $this -> _mDb -> getAll("SELECT `Tag` FROM `sys_tags` WHERE `ObjID`=:id AND `Type`=:type", array('id' => $iObjectId, 'type' => $sType));
-		if (empty($aTags))
-			return false;
-		
-		foreach($aTags as $aTag)
-			$this -> _oDb -> query("INSERT IGNORE INTO `{$sTableKeywords}` SET `keyword`=:keyword, `object_id`=:id", array('keyword' => $aTag['Tag'], 'id' => $iNewObjectId));
 	}
 
 	/**

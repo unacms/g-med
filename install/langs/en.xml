@@ -45,6 +45,7 @@
 	<string name="_bx_mssql_migration_data_profiles"><![CDATA[Profiles]]></string>
 	<string name="_bx_mssql_migration_data_profile_fields"><![CDATA[Profile Fields]]></string>  
 	<string name="_bx_mssql_migration_data_blogs"><![CDATA[Blogs]]></string>
+	<string name="_bx_mssql_migration_data_channels"><![CDATA[Channels]]></string>
 	<string name="_bx_mssql_migration_data_photos"><![CDATA[Photo Albums, Photos]]></string>
 	<string name="_bx_mssql_migration_data_videos"><![CDATA[Video Albums, Videos]]></string>
 	<string name="_bx_mssql_migration_data_groups"><![CDATA[Groups]]></string>
@@ -95,6 +96,12 @@
 	<string name="_bx_mssql_migration_started_migration_polls"><![CDATA[Polls migration was started]]></string>
 	<string name="_bx_mssql_migration_started_migration_polls_finished"><![CDATA[Polls were transferred]]></string>
 	<string name="_bx_mssql_migration_started_migration_polls_error"><![CDATA[Error occurred. Record Id is {0}]]></string>
+	<string name="_bx_mssql_migration_started_migration_channels"><![CDATA[Channels migration was started]]></string>
+	<string name="_bx_mssql_migration_started_migration_channels_finished"><![CDATA[Channels were transferred]]></string>
+	<string name="_bx_mssql_migration_started_migration_channels_error"><![CDATA[Error occurred. Record Id is {0}]]></string>
+	<string name="_bx_mssql_migration_started_migration_groups"><![CDATA[Groups migration was started]]></string>
+	<string name="_bx_mssql_migration_started_migration_groups_finished"><![CDATA[Groups were transferred]]></string>
+	<string name="_bx_mssql_migration_started_migration_groups_error"><![CDATA[Error occurred. Record Id is {0}]]></string>
 	<string name="_bx_mssql_migration_started_migration_timeline"><![CDATA[Wall Migration was started]]></string>
 	<string name="_bx_mssql_migration_started_migration_timeline_finished"><![CDATA[{0} wall posts with comments were transferred]]></string>
 	<string name="_bx_mssql_migration_started_migration_timeline_error"><![CDATA[Error occurred. Record Id is {0}]]></string>
@@ -114,5 +121,5 @@
 	<string name="_bx_mssql_migration_data_posts"><![CDATA[Posts, Comments, Files]]></string>
 	<string name="_bx_mssql_migration_remove_profile_content_confirmation"><![CDATA[If you remove profiles, it will remove all transferred profiles' content also. Continue?]]></string>
 	<string name="_bx_mssql_migration_update_transfer"><![CDATA[Get Data for transfer]]></string>
-	<string name="_bx_mssql_migration_update_confirmation"><![CDATA[If you already transferred data, you may lost records about it in table below. Continue?]]></string>
+	<string name="_bx_mssql_migration_update_confirmation"><![CDATA[If you already transferred data, you may lose records with result in table below. Continue?]]></string>
 </resources>

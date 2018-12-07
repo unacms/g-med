@@ -17,7 +17,9 @@ require_once('BxMSSQLMData.php');
 	
 class BxMSSQLMProfiles extends BxMSSQLMData
 {
-    var $_sPwdFlagField = 'use_old_pwd';
+    private $_sPwdFlagField = 'use_old_pwd';
+    private $_iHealthyDayProfileId = 639152;
+    private $_iHealthyDayAccountId = 0;
 
     public function __construct(&$oMigrationModule, &$seDb)
     {
@@ -55,9 +57,9 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 	* @param string $sNickName name of the user
 	* @return string
          */ 	 
-	private function isProfileExisted($sNickName, $sEmail)
+	private function isProfileExisted($sEmail)
 	{
-         $sQuery  = $this -> _oDb -> prepare("SELECT COUNT(*) FROM `sys_accounts` WHERE `name` = ? OR `email` = ?", $sNickName, $sEmail);
+         $sQuery  = $this -> _oDb -> prepare("SELECT COUNT(*) FROM `sys_accounts` WHERE `email` = ?", $sEmail);
          return $this -> _oDb -> getOne($sQuery) ? true : false;
 	}
 
@@ -85,59 +87,86 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 			if ($iProfileID) 				
 				$sStart = " AND [ID] > {$iProfileID}";
 
-			$aResult = $this -> _mDb -> getAll("SELECT * FROM ["  . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] WHERE [Email] <> '' {$sStart} ORDER BY ID ASC"); /* WHERE [ID] IN (75054, 4, 10396, 642945, 1142515, 1143586, 1144789, 1148522, 73231, 120003, 120332, 120142, 1148522, 84831, 80125, 85834, 77468, 74028, 84310, 84359, 84159, 1148522, 120021, 84047, 84118, 22184, 474661, 81226, 83461, 76859, 84742, 1148708, 81393,43845, 81983,119890,72620,82167,640807) AND  OR (StateID <> '' AND CityID <> '') */
+		    $aHealthyDay = $this -> _mDb -> getAll("SELECT [UserName],[Email],[Password],[RegisterDate],[ID],[FullName],[LastName],[MiddelName],[BirthDay],[FirstName] 
+                                                FROM ["  . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "]
+                                                WHERE [ID] = :id", array('id' => $this -> _iHealthyDayProfileId)); /* WHERE [ID] IN (75054, 4, 10396, 642945, 1142515, 1143586, 1144789, 1148522, 73231, 120003, 120332, 120142, 1148522, 84831, 80125, 85834, 77468, 74028, 84310, 84359, 84159, 1148522, 120021, 84047, 84118, 22184, 474661, 81226, 83461, 76859, 84742, 1148708, 81393,43845, 81983,119890,72620,82167,640807) AND  OR (StateID <> '' AND CityID <> '') */
 
-			$oLanguage = BxDolLanguages::getInstance();
-			foreach($aResult as $iKey => $aValue)
+            $aResult = $this -> _mDb -> getAll("SELECT [UserName],[Email],[Password],[RegisterDate],[ID],[FullName],[LastName],[MiddelName],[BirthDay],[FirstName],[UserTypeID] 
+                                                FROM ["  . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "]
+                                                WHERE [UserTypeID] IN (1,2,3,4,8) AND [ID] != :id 
+                                                ORDER BY [ID] ASC", array('id' => $this -> _iHealthyDayProfileId)); /*AND [ID] IN (4,38717,16,640474,12,640036,39324,38666,39401,18,26,639970,17,40996,8,9,11,38688,43191,38695,39339,53087,640481,23,43897,39236,42685,5,42322,640482,19,39338,14,39298,41007,39293,43557,39363,42289,41775,39296,43892,13,39331,6,43930,38640,39220,39268,38667,39231,41769,15,39284,40978,38897,43940,39278,53074,635555,43946,39318,39344,21,39282,32,42,38633,35,38885,38899,639956,38669,39276,39310,39381,43963,38646,39235,40990,42562,41004,39264,39267,42554,42341,43941,647274,43962,53080,639976,39265,39332,639977,639989,39223,41000,3,644192)*/
+
+            $aResult = array_merge($aHealthyDay, $aResult);
+		    foreach($aResult as $iKey => $aValue)
 			{                  
 
 			    $sDateReg  = strtotime($aValue['RegisterDate']);
+                $iAccountId = 0;
+			    if(!(!$aValue['Email'] && $aValue['UserTypeID'] == 2) && !$this -> isProfileExisted($aValue['Email'])) {
+                    $sSalt = '';
+                    $sEmail = isset($aValue['Email']) && $aValue['Email'] ? $aValue['Email'] : "unknown_{$aValue['ID']}@dummy-domain.com";
+                    if (!$aValue['Password']) {
+                        $sSalt = genRndSalt();
+                        $aValue['Password'] = encryptUserPwd($sEmail, $sSalt);
+                    }
 
-				if($aValue['UserName'] && !$this -> isProfileExisted($aValue['UserName'], $aValue['Email']))
-				  {					
-					$sQuery = $this -> _oDb -> prepare( 
-                     "
+                    $sQuery = $this->_oDb->prepare(
+                        "
                      	INSERT INTO
                      		`sys_accounts`
                      	SET
                      		`name`   			= ?,
                      		`email`      		= ?,
                      		`password`   		= ?,
-                     		`salt`		   		= '',
+                     		`salt`		   		= ?,
 							`added`				= ?,
                      		`changed`	  		= ?,
                      		`logged` 			= ?,
 							`email_confirmed`	= 1,
 							`receive_updates`	= 1,	
 							`receive_news`		= 1,
-							`{$this -> _sPwdFlagField}` = 1
+							`{$this -> _sPwdFlagField}` = ?
 							
                      ",
-                        /*`lang_id`			= ?,*/
-						$aValue['UserName'],
-						$aValue['Email'], 
-						$aValue['Password'],
-						/*$aValue['LangID'],*/
+                        $aValue['UserName'] ? $aValue['UserName'] : $aValue['FirstName'],
+                        $sEmail,
+                        $aValue['Password'],
+                        $sSalt,
                         $sDateReg,
                         $sDateReg,
-                        $sDateReg
-						);
-						
-					$this -> _oDb -> query($sQuery);										
-					$iAccountId = $this -> _oDb -> lastId();
-					if (!$iAccountId) 
-						continue;
-					
-					$this -> setMID($iAccountId, $aValue['ID']);
-					
-					$sFullName = isset($aValue['Native_FullName']) ? $aValue['Native_FullName'] : $aValue['FullName'];
-					
-					$sQuery = $this -> _oDb -> prepare( 
+                        $sDateReg,
+                        $sSalt ? 0 : 1
+                    );
+                        $this -> _oDb -> query($sQuery);
+                        $iAccountId = $this -> _oDb -> lastId();
+
+                        if (!$this -> _iHealthyDayAccountId && $aValue['ID'] == $this -> _iHealthyDayProfileId)
+                            $this -> _iHealthyDayAccountId = $iAccountId;
+
+			        }
+                    else if (!$aValue['Email'] && $aValue['UserTypeID'] == 2) {
+                        $iAccountId = $this-> getAccountIdByContentId();
+                    }
+
+                   $iAccountId = $iAccountId ? $iAccountId : $this -> _iHealthyDayAccountId;
+                   $iAccountId = $iAccountId ? $iAccountId : $this-> getAccountIdByContentId($this -> _iHealthyDayProfileId);
+
+                    $this -> setMID($iAccountId, $aValue['ID']);
+					$sFirstName =  isset($aValue['FirstName']) && $aValue['FirstName'] ? $aValue['FirstName'] : '';
+					$sMiddelName =  isset($aValue['MiddelName']) && $aValue['MiddelName'] ? $aValue['MiddelName'] : '';
+					$sLastName =  isset($aValue['LastName']) && $aValue['LastName'] ? $aValue['LastName'] : '';
+
+					$sFullName = "{$sFirstName} {$sMiddelName} {$sLastName}";
+					$sFullName = $sFullName ? $sFullName : $aValue['UserName'];
+					$sFullName = $sFullName ? $sFullName : substr(0, stripos($aValue['Email'], '@'));
+
+					$sQuery = $this -> _oDb -> prepare(
 	                     "
 	                     	INSERT INTO
 	                     		`bx_persons_data`
 	                     	SET
-	                     		`author`   			= 0,
+	                     		`id`                = ?,
+	                     	    `author`   			= 0,
 	                     		`added`      		= ?,
 	                     		`changed`   		= ?,
 								`picture`			= 0,		
@@ -146,14 +175,15 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 								`birthday`			= ?,
 								`gender`			= 1
 	                     ",
+                            $aValue['ID'],
                             $sDateReg,
                             $sDateReg,
 							$sFullName,
 							isset($aValue['BirthDay']) && $aValue['BirthDay']? strtotime($aValue['BirthDay']) : 'NULL'
-							);
+						 );
 						
 						$this -> _oDb -> query($sQuery);	
-						$iContentId = $this -> _oDb -> lastId();
+						$iContentId = $aValue['ID'];//$this -> _oDb -> lastId();
 						
 						$this -> _oDb -> query("INSERT INTO `sys_profiles` SET `account_id` = {$iAccountId}, `type` = 'system', `content_id` = {$iContentId}, `status` = 'active'");
 						$this -> _oDb -> query("INSERT INTO `sys_profiles` SET `account_id` = {$iAccountId}, `type` = 'bx_persons', `content_id` = {$iContentId}, `status` = 'active'");
@@ -165,17 +195,16 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 						$sQuery = $this -> _oDb -> prepare("UPDATE `bx_persons_data` SET `author` = ? WHERE `id` = ?", $iProfile, $iContentId);						
 						$this -> _oDb -> query($sQuery);
 
-						$this -> exportAvatar($iContentId, $aValue);
+						$this -> exportAvatar($aValue, $iContentId, $iProfile);
 
 				    	$this -> _iTransferred++;
-                  }
+
              }
 
-        }
+    }
 
-	private function exportAvatar($iProfileId, $aProfileInfo)
+	private function exportAvatar($aProfileInfo, $iContentId, $iProfileId)
     {
-       $iProfileId = (int) $iProfileId;
        $sId = $this -> _mDb -> getOne("SELECT [FileName] FROM [UsersImages] WHERE [UserID] = :id", array('id' => $aProfileInfo['ID']));
        if (!$sId)
            return FALSE;
@@ -185,7 +214,7 @@ class BxMSSQLMProfiles extends BxMSSQLMData
 		$iId = $oStorage->storeFileFromUrl($sAvatarPath, false, $iProfileId);
 		if ($iId)
 		{
-			$sQuery = $this -> _oDb -> prepare("UPDATE `bx_persons_data` SET `Picture` = ? WHERE `id` = ?", $iId, $iProfileId);
+			$sQuery = $this -> _oDb -> prepare("UPDATE `bx_persons_data` SET `Picture` = ? WHERE `id` = ?", $iId, $iContentId);
 			$this -> _oDb -> query($sQuery);
 		}
     }

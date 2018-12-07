@@ -9,7 +9,6 @@
  * @{
  */
 
-require_once('BxMDb.php'); 
 if ( function_exists('ini_set'))
 {
     ini_set('max_execution_time', 0);
@@ -105,7 +104,7 @@ class BxMSSQLMModule extends BxBaseModGeneralModule
 		if (is_null($this -> _oMDb)) 
 			$this -> initDb();
 
-		$this -> _oDb -> cleanTrasnfersTable();
+		/*$this -> _oDb -> cleanTrasnfersTable();*/
 		foreach ($this -> _oConfig -> _aMigrationModules as $sName => $aModule)
 		{			
 			//if ($this -> _oMDb -> isTableExists($aModule['table_name']))
@@ -135,7 +134,8 @@ class BxMSSQLMModule extends BxBaseModGeneralModule
 				'sock'	  => ''
 			);
 
-		$this -> _oMDb = new BxMDb($aConfig);
+        require_once('BxMDb.php');
+        $this -> _oMDb = new BxMDb($aConfig);
 		return $this -> _oMDb -> connect();
 	}
 

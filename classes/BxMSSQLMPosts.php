@@ -34,22 +34,35 @@ class BxMSSQLMPosts extends BxMSSQLMData
 	{        
 		if (!$this -> getTotalRecords())
 		{
-			  $this -> setResultStatus(_t('_bx_dolphin_migration_no_data_to_transfer'));
+			  $this -> setResultStatus(_t('_bx_mssql_migration_no_data_to_transfer'));
 	          return BX_MIG_SUCCESSFUL;
 		}	
 		
-		$this -> setResultStatus(_t('_bx_dolphin_migration_started_migration_blogs'));		
+		$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_blogs'));
 			
 		$this -> createMIdField();
         $sStart = '';
 		$iPostId = $this -> getLastMIDField();
 		if ($iPostId)
-			$sStart = " AND [ID] >= {$iPostId}";
-		
-		$aResult = $this -> _mDb -> getAll("SELECT * FROM [" . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] {$sStart} WHERE [MainParentID] IS NULL ORDER BY [ID]");
-		
-		$iCmts = 0;
+			$sStart = " AND [p].[ID] >= {$iPostId}";
 
+        $aResult = $this -> _mDb -> getAll("SELECT 
+                                               [p].[ID],
+                                               [UserID],
+                                               [CreatedDate],
+                                               [Post_Title],
+                                               [Post_Content],
+                                               [LikesCount],
+                                               [IsApprove],
+                                               [MainParentID],
+                                               [Post_Summary],
+                                               [CreatedDate],
+                                               [h].[HealthdayPostID]
+                                            FROM [Channels_Posts] as [p]
+                                              LEFT JOIN [Users] as [u] ON [u].[ID] = [p].[UserID]
+                                            LEFT JOIN [HealthdayPosts] as [h] ON [h].[PostID] = [p].[ID] 
+                                            WHERE [MainParentID] IS NULL AND NOT (([Post_Title] = '' OR [Post_Title] IS NULL) AND ([Post_Content] = '' OR [Post_Content] IS NULL)) {$sStart}
+                                            ORDER BY [p].[ID]"); /*  LEFT JOIN (SELECT COUNT(*) as [count], [PostID] FROM [Posts_Files] GROUP BY [PostID]) as [f] ON [f].[PostID] = [p].[ID]  AND [count] = 0 */
 		foreach($aResult as $iKey => $aValue)
 		{
 			$iProfileId = $this -> getProfileId((int)$aValue['UserID']);
@@ -59,13 +72,16 @@ class BxMSSQLMPosts extends BxMSSQLMData
             $iPostId = $this -> isItemExisted($aValue['ID']);
 			if (!$iPostId)
 			{
-				$iDate = isset($aValue['CreatedDate']) ? strtotime($aValue['CreatedDate']) : time();
+				$iDate = isset($aValue['CreatedDate']) && $aValue['CreatedDate'] ? strtotime($aValue['CreatedDate']) : time();
+                $iDate = $iDate !== FALSE ? $iDate : time();
+
 			    $sQuery = $this -> _oDb -> prepare(
                      "
                      	INSERT INTO
                      		`{$this -> _sTableWithTransKey}`
                      	SET
-                     		`author`   			= ?,
+                     		`id`                = ?,
+                     	    `author`   			= ?,
                      		`added`      		= ?,
                      		`changed`   		= ?,
 							`thumb`				= 0,
@@ -73,50 +89,55 @@ class BxMSSQLMPosts extends BxMSSQLMData
                      		`text`				= ?,							
 							`cat`				= 26,
 							`votes`				= ?,
-							`status`			= ?
+							`status`			= ?,
+                     	    `magazine_id`       = ?
 							
-                     ", 
+                     ",
+                     /*,
+                     	    `views`             = ?*/
+                        $aValue['ID'],
 						$iProfileId,
                         $iDate,
                         $iDate,
-						isset($aValue['Post_Title']) ? $aValue['Post_Title'] : time() + 1,
+						isset($aValue['Post_Title']) && $aValue['Post_Title'] ? $aValue['Post_Title'] : $aValue['CreatedDate'],
 						isset($aValue['Post_Content']) ? $aValue['Post_Content'] : '',
 						isset($aValue['LikesCount']) ? (int)$aValue['LikesCount'] : 0,
-                        (int)$aValue['IsApprove'] ? 'active' : 'awaiting'
+                        (int)$aValue['IsApprove'] ? 'active' : 'awaiting',
+                        (int)$aValue['HealthdayPostID']
 						);			
 		
 				$this -> _oDb -> query($sQuery);
-				
-				$iPostId = $this -> _oDb -> lastId();
-				if (!$iPostId){
-					$this -> setResultStatus(_t('_bx_dolphin_migration_started_migration_blogs_error', (int)$aValue['PostID']));
+
+				$iPostId = $aValue['ID'];//$this -> _oDb -> lastId();
+				if (!$this -> _oDb -> lastId()){
+					$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_blogs_error', (int)$aValue['ID']));
 					return BX_MIG_FAILED;
-				}	
+				}
 				
 				$this -> setMID($iPostId, $aValue['ID']);
 			}
 			
-	    	$this -> exportFiles($iPostId, $aValue['ID'], $iProfileId);
-						
-			$iCmts = $this -> transferComments($iPostId, (int)$aValue['ID']);
+	    	$this -> exportFiles($aValue['ID'], $iProfileId);
+			$iCmts = $this -> transferComments((int)$aValue['ID']);
+            $iViews = $this -> transferViews((int)$aValue['ID']);
 			$this -> _iTransferred++;
 						
-			$this -> _oDb ->  query("UPDATE `{$this -> _sTableWithTransKey}` SET `comments` = :cmts WHERE `id` = :id", array('id' => $iPostId, 'cmts' => $iCmts));
+			$this -> _oDb ->  query("UPDATE `{$this -> _sTableWithTransKey}` SET `comments` = :cmts, `views` = :views WHERE `id` = :id", array('id' => $iPostId, 'cmts' => $iCmts, 'views' => $iViews));
 			
         }
 
-        $this -> setResultStatus(_t('_bx_dolphin_migration_started_migration_blogs_finished', $this -> _iTransferred));
+        $this -> setResultStatus(_t('_bx_mssql_migration_started_migration_blogs_finished', $this -> _iTransferred));
         return BX_MIG_SUCCESSFUL;
     }
 
-    protected function transferComments($iObject, $iEntryId)
+    protected function transferComments($iEntryId)
     {
 
-        $aComments = $this -> _mDb -> getAll("SELECT * FROM [" . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] WHERE [MainParentID] = :id", array('id' => $iEntryId));
+        $aComments = $this -> _mDb -> getAll("SELECT [UserID],[MainParentID],[Post_Summary],[CreatedDate] FROM [" . $this -> _oConfig -> _aMigrationModules[$this -> _sModuleName]['table_name'] . "] WHERE [MainParentID] = :id", array('id' => $iEntryId));
 
         $this -> createMIdField();
 
-        $iCommnets = 0;
+        $iComments = 0;
         foreach($aComments as $iKey => $aValue)
         {
             $iProfileId = $this -> getProfileId($aValue['UserID']);
@@ -125,56 +146,89 @@ class BxMSSQLMPosts extends BxMSSQLMData
                 $this -> _oDb -> query("INSERT INTO `bx_posts_cmts` (`cmt_id`, `cmt_parent_id`, `cmt_vparent_id`, `cmt_object_id`, `cmt_author_id`, `cmt_level`, `cmt_text`, `cmt_time`, `cmt_replies`, `cmt_rate`, `cmt_rate_count`)
 									VALUES	(NULL, 0, 0, :object, :user, 0, :message, :time, 0, 0, 0)",
                     array(
-                        'object' => $iObject,
+                        'object' => $iEntryId,
                         'user' => $iProfileId,
                         'message' => $aValue['Post_Summary'],
                         'time' => strtotime($aValue['CreatedDate'])
                     ));
 
-                $iCommnets++;
+                $iComments++;
             }
         }
 
-        return $iCommnets;
+        return $iComments;
+    }
+
+    private function transferViews($iEntryId)
+    {
+
+        $aViews = $this -> _mDb -> getAll("SELECT 
+                                                   [UserID]
+                                                  ,[PostID]
+                                                  ,[CreatedDate]
+                                                  ,[IsExpose]
+                                                  ,[WebDomain]  
+                                                  FROM [Statistic_UsersReadPost]
+                                                  WHERE PostID = :id AND IsExpose = 1", array('id' => $iEntryId));
+        if (empty($aViews))
+            return 0;
+
+        $iViews = 0;
+        foreach($aViews as $iKey => $aValue)
+        {
+            $iProfileId = $this -> getProfileId($aValue['UserID']);
+            if ($iProfileId)
+            {
+                $iDate = strtotime($aValue['CreatedDate']);
+                $iDate = $iDate !== FALSE ? $iDate: time();
+
+                $this -> _oDb -> query("INSERT INTO `bx_posts_views_track` (`object_id`, `viewer_id`, `viewer_nip`, `date`)
+									VALUES	(:object, :user, :ip, :time)",
+                    array(
+                        'object' => $iEntryId,
+                        'user' => $iProfileId,
+                        'ip' => $iDate + $iViews,
+                        'time' => $iDate
+                    ));
+
+                $iViews++;
+            }
+        }
+
+        return $iViews;
     }
 
 	/**
-	 * Export thumbnail
-	 *
 	 * @param integer $iEntryId una blog Id
 	 * @param integer $iProfileId  profile id
 	 * @return void
 	 */
-	private function exportFiles($iPostID, $iEntryId, $iProfileId)
+	private function exportFiles($iEntryId, $iProfileId)
     {
-       $aFiles = $this -> _mDb -> getAll('SELECT * FROM [Posts_Files] WHERE [PostID] = :id', array('id' => $iEntryId));
+       $aFiles = $this -> _mDb -> getAll('SELECT [FileName] FROM [Posts_Files] WHERE [PostID] = :id', array('id' => $iEntryId));
        if (empty($aFiles))
 		   return;
 
+       $bIsCoverSet = false;
        $sFileUrl =  "http://gmed.imgix.net/postdata/";
        $imgExts = array("gif", "jpg", "jpeg", "png", "tiff", "tif");
-       $oImageStorage = BxDolStorage::getObjectInstance('bx_posts_photos');
+       //$oImageStorage = BxDolStorage::getObjectInstance('bx_posts_photos');
        $oFilesStorage = BxDolStorage::getObjectInstance('bx_posts_files');
        foreach($aFiles as &$aFile)
        {
 
            $sExt = pathinfo($aFile['FileName'], PATHINFO_EXTENSION);
-           if (in_array($sExt, $imgExts))
+           if (in_array($sExt, $imgExts) && !$bIsCoverSet)
            {
-
-               $iImage = $oFilesStorage->storeFileFromUrl($sFileUrl . $aFile['FileName'], false, $iProfileId, (int)$iPostID);
+               $iImage = $oFilesStorage->storeFileFromUrl($sFileUrl . $aFile['FileName'], false, $iProfileId, (int)$iEntryId);
                if ($iImage) {
-                   $oFilesStorage->afterUploadCleanup($iImage, $iProfileId);
-                   $sQuery = $this->_oDb->prepare("UPDATE `{$this -> _sTableWithTransKey}` SET `thumb` = ? WHERE `id` = ?", $iImage, $iPostID);
+                   $sQuery = $this->_oDb->prepare("UPDATE `{$this -> _sTableWithTransKey}` SET `thumb` = ? WHERE `id` = ?", $iImage, $iEntryId);
                    $this->_oDb->query($sQuery);
+                   $bIsCoverSet = true;
                }
            }
-           else
-           {
-               $iFile = $oFilesStorage->storeFileFromUrl($sFileUrl . $aFile['FileName'], false, $iProfileId, (int)$iPostID);
-               if ($iFile)
-                   $oFilesStorage->afterUploadCleanup($iFile, $iProfileId);
-           }
+
+           $oFilesStorage->storeFileFromUrl($sFileUrl . $aFile['FileName'], false, $iProfileId, (int)$iEntryId);
        }
     }
 	

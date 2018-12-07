@@ -56,7 +56,7 @@ class BxMSSQLMTransfers extends BxTemplGrid
 			'blink' => $aElements,
 		));		   
 	}
-
+	
     public function performActionUpdate()
     {
         $sMessage = MsgBox( _t('_bx_mssql_migration_data_was_set'));

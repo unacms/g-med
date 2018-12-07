@@ -63,20 +63,9 @@ class BxMDb
 
     	try {
 	    	$sDsn = "sqlsrv:server=" . $this->_sHost . ";";
-	   		//$sDsn .= $this->_sPort ? "port=" . $this->_sPort . ";" : "";
-	   		//$sDsn .= $this->_sSocket ? "unix_socket=" . $this->_sSocket . ";" : "";
-	    	$sDsn .= "database=" . $this->_sDbname;// . ";charset=UTF8";
+	    	$sDsn .= "database=" . $this->_sDbname;
 
-	        self::$_rLink = new PDO($sDsn, $this->_sUser, $this->_sPassword/*, array(
-				PDO::ATTR_ERRMODE => $this->_iPdoErrorMode,
-				PDO::ATTR_DEFAULT_FETCH_MODE => $this->_iPdoFetchType,
-				PDO::ATTR_PERSISTENT => $this->_bPdoPersistent
-	        )*/);
-
-	    	//$this->pdoExec("SET NAMES 'utf8'");
-	       // $this->pdoExec("SET sql_mode = ''");
-			//$this->pdoExec("SET storage_engine=" . $this->_sStorageEngine);
-
+	        self::$_rLink = new PDO($sDsn, $this->_sUser, $this->_sPassword);
 			self::$_aDbCacheData = array();
     	}
     	catch (PDOException $oException) {

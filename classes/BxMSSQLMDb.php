@@ -124,7 +124,11 @@ class BxMSSQLMDb extends BxBaseModGeneralDb
 	{
 		$sNumber = $mixedNumber;
 		if (is_array($mixedNumber))
-			$sNumber = implode(',', $mixedNumber);	
+			$sNumber = implode(',', $mixedNumber);
+
+		if ($this -> getOne("SELECT COUNT(*) FROM `{$this -> _sPrefix}transfers` WHERE `module` =:module", array('module' => $sName)))
+		    return $this -> query("UPDATE `{$this -> _sPrefix}transfers` SET `number` = :number WHERE `module` = :module", array('module' => $sName, 'number' => $sNumber));
+
 		return $this -> query("INSERT INTO `{$this -> _sPrefix}transfers` SET `module` = :module, `status` = 'not_started', `number` = :number", array('module' => $sName, 'number' => $sNumber));
 	}		
 
