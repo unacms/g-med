@@ -11,22 +11,22 @@
 
 require_once('BxMSSQLMData.php');
 bx_import('BxDolStorage');
-	
+
 class BxMSSQLMGroups extends BxMSSQLMData
-{	
+{
 	public function __construct(&$oMigrationModule, &$oDb)
 	{
         parent::__construct($oMigrationModule, $oDb);
 		$this -> _sModuleName = 'groups';
 		$this -> _sTableWithTransKey = 'bx_groups_data';
-    }    
-	
+    }
+
 	public function getTotalRecords()
 	{
-		return $this -> _mDb -> getOne("SELECT COUNT(*) FROM [Channels] WHERE [ChannelTypeID] = 8");
+		return $this -> _mDb -> getOne("SELECT COUNT(*) FROM [Channels] WHERE [ChannelTypeID] IN (8,9)");
 	}
     public function runMigration()
-	{        
+	{
 		if (!$this -> getTotalRecords())
 		{
 			  $this -> setResultStatus(_t('_bx_mssql_migration_no_data_to_transfer'));
@@ -35,7 +35,9 @@ class BxMSSQLMGroups extends BxMSSQLMData
 
 		$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_groups'));
 
-        if (!$this -> _oDb -> isFieldExists($this -> _sTableWithTransKey, $this -> _sTransferFieldIdent) || (int)$this -> _oDb -> getOne("SELECT COUNT(*) FROM `{$this -> _sTableWithTransKey}`"))
+		$bFieldExists = $this -> _oDb -> isFieldExists($this -> _sTableWithTransKey, $this -> _sTransferFieldIdent);
+        if (!$bFieldExists ||
+           ($bFieldExists && !(int)$this -> _oDb -> getOne("SELECT COUNT(*) FROM `{$this -> _sTableWithTransKey}` WHERE `{$this -> _sTransferFieldIdent}` <> 0")))
             $this -> removeContent();
 
         $this -> createMIdField();
@@ -44,7 +46,6 @@ class BxMSSQLMGroups extends BxMSSQLMData
 		$iGroupId = $this -> getLastMIDField();
 		if ($iGroupId)
 			$sStart = " AND [ID] >= {$iGroupId}";
-
 
         $aAdmins = BxDolAclQuery::getInstance()->getProfilesByMembership(array(MEMBERSHIP_ID_MODERATOR, MEMBERSHIP_ID_ADMINISTRATOR));
         $iAuthor = !empty($aAdmins) && $aAdmins[0]['id'] ? $aAdmins[0]['id'] : 1;
@@ -67,7 +68,7 @@ class BxMSSQLMGroups extends BxMSSQLMData
                                               ,[ImageId]
                                               ,[CreatorUserId]
                                           FROM [Channels]
-                                          WHERE [ChannelTypeID] = 8 {$sStart}");
+                                          WHERE [ChannelTypeID] IN (8,9) {$sStart}");
 
 		foreach($aResult as $iKey => $aValue)
 		{
@@ -89,17 +90,17 @@ class BxMSSQLMGroups extends BxMSSQLMData
                         $aValue['ID'],
                         $iAuthor,
 						$aValue['ChannelName']
-						);			
-		
+						);
+
 				$this -> _oDb -> query($sQuery);
-				
+
 				$iGroupId = $this -> _oDb -> lastId();
                 $this -> _oDb -> query("INSERT INTO `sys_profiles` SET `account_id` = :account, `type` = 'bx_groups', `content_id` = :group, `status` = 'active'",
                                             array('account' => $iAccountId, 'group' => $iGroupId));
                 $this -> setMID($iGroupId, $aValue['ID']);
             }
 
-			/*$iRelations = $this -> transferRelations($iGroupId, (int)$aValue['ID']);*/
+            $iFollowers = $this -> transferFollowers($iGroupId, (int)$aValue['ID']);
 			$this -> _iTransferred++;
         }
 
@@ -107,49 +108,41 @@ class BxMSSQLMGroups extends BxMSSQLMData
         return BX_MIG_SUCCESSFUL;
     }
 
-    /*private function getProfileIdByContentId($iId){
-        $sQuery = $this -> _oDb -> prepare("SELECT `id` FROM `sys_profiles` WHERE `content_id`=? AND `type` = 'bx_groups' LIMIT 1", $iId);
-        return $this -> _oDb -> getOne($sQuery);
-    }
+    public function transferFollowers($iGroupID, $iOldGroupId){
+        $aFollowers =  $aPosts = $this -> _mDb -> getAll("SELECT [UserID],[ChannelID],[IsAdmin]
+                                                          FROM [Users_Channels]
+                                                          WHERE ChannelID = :id ", array('id' => $iOldGroupId));
 
-    protected function transferRelations($iNewChannelId, $iOldChannelId)
-    {
-        $iChannelProfileID = $this ->  getProfileIdByContentId($iNewChannelId);
-        if (!$iChannelProfileID)
+        $iGroupProfileID = $this -> _oDb -> getOne("SELECT `id` FROM `sys_profiles` WHERE `content_id` = :group AND  `type` =  'bx_groups' LIMIT 1", array('group' => $iGroupID));
+        if (empty($aFollowers) || !$iGroupProfileID)
             return false;
 
-        $aPosts = $this -> _mDb -> getAll("SELECT [PostID] FROM [Channels_Posts_Relations] WHERE [ChannelID] = :id", array('id' => $iOldChannelId));
-        $iRelations = 0;
-        foreach($aPosts as $iKey => $aValue)
-        {
-            $iPostAuthorProfile = $this -> _oDb -> getOne("SELECT `author` FROM `bx_posts_posts` WHERE `id` = :id", array('id' => $aValue['PostID']));
-            if ($iPostAuthorProfile)
-            {
+        $iInc = 0;
+        foreach($aFollowers as $aFollower){
+            $iProfileID = $this -> getProfileId($aFollower['UserID']);
+            if ($iProfileID) {
+                $this->_oDb->query("INSERT INTO `sys_profiles_conn_subscriptions` SET `initiator` = :profile, `added` = UNIX_TIMESTAMP(), `content` = :group",
+                    array('profile' => $iProfileID, 'group' => $iGroupProfileID));
 
-                $this -> _oDb -> query("INSERT INTO `bx_cnl_content` SET 
-                   `content_id`=:post_id,
-                   `cnl_id`=:cnl_id,
-                   `author_id`=:profile_id,
-                   `module_name`='bx_posts'",
-                    array(
-                        'post_id' => (int)$aValue['PostID'],
-                        'cnl_id' => $iNewChannelId,
-                        'profile_id' => $iPostAuthorProfile
-                    ));
+                $this->_oDb->query("INSERT INTO `bx_groups_fans` SET `initiator` = :profile, `added` = UNIX_TIMESTAMP(), `content` = :group, `mutual` = 1",
+                    array('profile' => $iProfileID, 'group' => $iGroupProfileID));
+                $this->_oDb->query("INSERT INTO `bx_groups_fans` SET `content` = :profile, `added` = UNIX_TIMESTAMP(), `initiator` = :group, `mutual` = 1",
+                    array('profile' => $iProfileID, 'group' => $iGroupProfileID));
 
-                $iRelations++;
+                if ((int)$aFollower['IsAdmin']) {
+                    $this->_oDb->query("INSERT INTO `bx_groups_admins` SET `fan_id` = :fan, `group_profile_id` = :group",
+                        array('fan' => $iProfileID, 'group' => $iGroupProfileID));
+                }
+                $iInc++;
             }
         }
 
-
-        return $iRelations;
-    }*/
+        return $iInc;
+    }
 
 	public function removeContent()
 	{
-		if (!$this -> _oDb -> isTableExists($this -> _sTableWithTransKey) || !$this -> _oDb -> isFieldExists($this -> _sTableWithTransKey, $this -> _sTransferFieldIdent))
-			return false;
-		
+
 		$aRecords = $this -> _oDb -> getAll("SELECT * FROM `{$this -> _sTableWithTransKey}` ");
 		$iNumber = 0;
 		if (!empty($aRecords))
@@ -159,10 +152,10 @@ class BxMSSQLMGroups extends BxMSSQLMData
 				BxDolService::call('bx_groups', 'delete_entity', array($aValue['id']));
 				$iNumber++;
 			}
-		}		
+		}
 		parent::removeContent();
 		return $iNumber;
-	}	
+	}
 }
 
 /** @} */

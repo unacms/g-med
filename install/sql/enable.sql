@@ -2,7 +2,7 @@ SET @sName = 'bx_mssql_migration';
 
 -- SETTINGS
 SET @iTypeOrder = (SELECT MAX(`order`) FROM `sys_options_types` WHERE `group` = 'modules');
-INSERT INTO `sys_options_types`(`group`, `name`, `caption`, `icon`, `order`) VALUES 
+INSERT INTO `sys_options_types`(`group`, `name`, `caption`, `icon`, `order`) VALUES
 ('modules',  @sName, '_bx_mssql_migration_wgt_cpt', 'bx_mssql_migration@modules/boonex/bx_mssql_migration/|std-icon.svg', IF(ISNULL(@iTypeOrder), 1, @iTypeOrder + 1));
 SET @iTypeId = LAST_INSERT_ID();
 
@@ -11,7 +11,9 @@ VALUES (@iTypeId,  @sName, '_bx_mssql_migration_wgt_cpt', 1);
 SET @iCategId = LAST_INSERT_ID();
 
 INSERT INTO `sys_options` (`name`, `value`, `category_id`, `caption`, `type`, `check`, `check_error`, `extra`, `order`) VALUES
-('bx_mssql_migration_salt', '', 0, '_bx_mssql_migration_salt', 'digit', '', '', '', 0);
+('bx_mssql_migration_healthy_day', '180', @iCategId, '_bx_mssql_migration_healthy_day_profile_id', 'digit', '', '', '', 0),
+('bx_mssql_migration_memberships', '10', @iCategId, '_bx_mssql_migration_memberships', 'select', '', '', 'a:4:{s:6:"module";s:6:"system";s:6:"method";s:15:"get_memberships";s:6:"params";a:4:{s:11:"purchasable";b:0;s:6:"active";b:1;s:9:"translate";b:1;s:22:"filter_out_auto_levels";b:1;}s:5:"class";s:16:"TemplAclServices";}', 0);
+
 
 -- GRIDS:
 INSERT INTO `sys_objects_grid` (`object`, `source_type`, `source`, `table`, `field_id`, `field_order`, `field_active`, `paginate_url`, `paginate_per_page`, `paginate_simple`, `paginate_get_start`, `paginate_get_per_page`, `filter_fields`, `filter_fields_translatable`, `filter_mode`, `sorting_fields`, `sorting_fields_translatable`, `visible_for_levels`, `override_class_name`, `override_class_file`) VALUES

@@ -16,10 +16,10 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
 	 *  @var array modules for transfer from G-Med to una with parameters
 	 *  	[table_name] -  (string) table from which to get data
 	 *  	[migration_class] - (string) class name/file name for data migration
-	 *  	[dependencies] -  (array) list of the modules which should be migrated before transferring selected module 
+	 *  	[dependencies] -  (array) list of the modules which should be migrated before transferring selected module
 	 *  	[plugins] - (array) list of the modules which should be installed on UNA before transferring selected module
 	 */
-	 
+
 	public $_aMigrationModules = array(
 				'profiles' => array(
                     'table_name'     => 'Users',
@@ -47,6 +47,7 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
 					'keywords'			=> 'bx_posts_meta_keywords',
 			        'dependencies' => array(
                 		'profiles',
+                        'groups'
                      ),
 					 'plugins' => array(
 						'bx_persons'	=> 'Persons',
@@ -69,12 +70,10 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
                     'table_name'		=> 'Channels',
                     'migration_class'	=> 'BxMSSQLMGroups',
                     'dependencies' => array(
-                        'profiles',
-                        'posts'
+                        'profiles'
                     ),
                     'plugins' => array(
                         'bx_persons' => 'Persons',
-                        'bx_posts'	 => 'Posts',
                         'bx_groups' => 'Groups'
                     ),
                 ),
@@ -89,16 +88,24 @@ class BxMSSQLMConfig extends BxBaseModGeneralConfig
                      ),
 					 'plugins' => array(
 						'bx_persons'	=> 'Persons',
-						'bx_polls'		=> 'Polls'	
+						'bx_polls'		=> 'Polls'
 			        ),
                 ),
 		*/
              );
-			 
+
 	public function __construct($aModule)
 	{
-		parent::__construct($aModule);		
+		parent::__construct($aModule);
 	}
+
+    function getHealthyProfileId(){
+	    return (int)getParam('bx_mssql_migration_healthy_day');
+    }
+
+    function getMagazineMembershipId(){
+        return (int)getParam('bx_mssql_migration_memberships');
+    }
 
 }
 

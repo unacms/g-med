@@ -11,16 +11,16 @@
 
 require_once('BxMSSQLMData.php');
 bx_import('BxDolStorage');
-	
+
 class BxMSSQLMChannels extends BxMSSQLMData
-{	
+{
 	public function __construct(&$oMigrationModule, &$oDb)
 	{
         parent::__construct($oMigrationModule, $oDb);
 		$this -> _sModuleName = 'channels';
 		$this -> _sTableWithTransKey = 'bx_cnl_data';
-    }    
-	
+    }
+
 	public function getTotalRecords()
 	{
 		return $this -> _mDb -> getOne("SELECT COUNT(*) FROM [Channels] WHERE [ChannelName] <> '' AND [ChannelTypeID] <> 8");
@@ -30,7 +30,7 @@ class BxMSSQLMChannels extends BxMSSQLMData
        return (int)$this -> _oDb -> getOne("SELECT `id` FROM `{$this -> _sTableWithTransKey}` WHERE `id` = :item OR `channel_name` = :name LIMIT 1", array('item' => $iItemId, 'name' => $sName));
     }
     public function runMigration()
-	{        
+	{
 		if (!$this -> getTotalRecords())
 		{
 			  $this -> setResultStatus(_t('_bx_mssql_migration_no_data_to_transfer'));
@@ -91,17 +91,17 @@ class BxMSSQLMChannels extends BxMSSQLMData
                         $aValue['ID'],
                         $iAuthor,
 						$aValue['ChannelName']
-						);			
-		
+						);
+
 				$this -> _oDb -> query($sQuery);
-				
+
 				$iChannelId = $this -> _oDb -> lastId();
                 $this -> _oDb -> query("INSERT INTO `sys_profiles` SET `account_id` = :account, `type` = 'bx_channels', `content_id` = :channel, `status` = 'active'",
                                             array('account' => $iAccountId, 'channel' => $iChannelId));
                 $this -> setMID($iChannelId, $aValue['ID']);
             }
 
-			$iRelations = $this -> transferRelations($iChannelId, (int)$aValue['ID']);
+			$iRelations = $this -> transferRelations($iChannelId, (int)$aValue['ID'], $aValue['ChannelName']);
 			$this -> _iTransferred++;
         }
 
@@ -114,7 +114,7 @@ class BxMSSQLMChannels extends BxMSSQLMData
         return $this -> _oDb -> getOne($sQuery);
     }
 
-    protected function transferRelations($iNewChannelId, $iOldChannelId)
+    protected function transferRelations($iNewChannelId, $iOldChannelId, $sChannelName)
     {
         $iChannelProfileID = $this ->  getProfileIdByContentId($iNewChannelId);
         if (!$iChannelProfileID)
@@ -140,20 +140,18 @@ class BxMSSQLMChannels extends BxMSSQLMData
                     ));
 
                 $iRelations++;
+
+                $this->_oDb->query("UPDATE `bx_posts_posts` SET `speciality` = 3 WHERE `id` = :id", array('id' => $aValue['PostID']));
+                $this->_oDb->query("REPLACE INTO `bx_posts_meta_keywords` SET `object_id` = :id, `keyword` = :name", array('id' => $aValue['PostID'], 'name' => $sChannelName));
             }
         }
-
-        /*if ($iRelations)
-            $this -> _oDb -> query("UPDATE `bx_posts_posts` SET `speciality` = 1 WHERE `id` = :id", array('id' => $aValue['PostID']));*/
 
         return $iRelations;
     }
 
 	public function removeContent()
 	{
-		if (!$this -> _oDb -> isTableExists($this -> _sTableWithTransKey) || !$this -> _oDb -> isFieldExists($this -> _sTableWithTransKey, $this -> _sTransferFieldIdent))
-			return false;
-		
+
 		$aRecords = $this -> _oDb -> getAll("SELECT * FROM `{$this -> _sTableWithTransKey}` ");
 		$iNumber = 0;
 		if (!empty($aRecords))
@@ -163,10 +161,10 @@ class BxMSSQLMChannels extends BxMSSQLMData
 				BxDolService::call('bx_channels', 'delete_entity', array($aValue['id']));
 				$iNumber++;
 			}
-		}		
+		}
 		parent::removeContent();
 		return $iNumber;
-	}	
+	}
 }
 
 /** @} */

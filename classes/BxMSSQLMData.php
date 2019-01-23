@@ -144,16 +144,17 @@ class BxMSSQLMData
 	*/	
 	protected function getProfileId($iId)
 	{
-		$sQuery = $this -> _oDb -> prepare("SELECT `p`.`id` FROM  `sys_accounts` AS  `a` 
+	    $sQuery = $this -> _oDb -> prepare("SELECT `p`.`id` FROM  `sys_accounts` AS  `a` 
 											LEFT JOIN  `sys_profiles` AS  `p` ON `a`.`id` =  `p`.`account_id` 
 											WHERE  `{$this -> _sTransferFieldIdent}` = ? AND  `p`.`type` =  'bx_persons' LIMIT 1", $iId);
 											
 		return $this -> _oDb -> getOne($sQuery);
 	}
 
-    protected function getAccountIdByContentId(){
-        $sQuery = $this -> _oDb -> prepare("SELECT `account_id` FROM  `sys_profiles` 
-											WHERE  `content_id` = ? AND  `type` =  'bx_persons' LIMIT 1", $iId);
+    protected function getAccountIdByContentId($iId){
+        $sQuery = $this -> _oDb -> prepare("SELECT `account_id` 
+                                            FROM `sys_profiles` 
+											WHERE `content_id` = ? AND `type` = 'bx_persons' LIMIT 1", $iId);
 
         return $this -> _oDb -> getOne($sQuery);
     }
@@ -285,12 +286,16 @@ class BxMSSQLMData
 	 *  
 	 *  @return int
 	 */
-	protected function getLastMIDField()
+	protected function getLastMIDField($iExclude = 0, $sField = 'ID')
 	{
 		if (!$this -> _sTableWithTransKey)
 			return false;
 
-		return (int)$this -> _oDb -> getOne("SELECT `{$this -> _sTransferFieldIdent}` FROM `{$this -> _sTableWithTransKey}` WHERE `{$this -> _sTransferFieldIdent}` <> 0 ORDER BY `ID` DESC LIMIT 1");
+		$sExclude = '';
+		if ((int)$iExclude)
+           $sExclude = "AND `{$sField}` <> {$iExclude}";
+
+		return (int)$this -> _oDb -> getOne("SELECT `{$this -> _sTransferFieldIdent}` FROM `{$this -> _sTableWithTransKey}` WHERE `{$this -> _sTransferFieldIdent}` <> 0 {$sExclude} ORDER BY `{$sField}` DESC LIMIT 1");
 	}
 
 	/**

@@ -12,6 +12,7 @@
 if ( function_exists('ini_set'))
 {
     ini_set('max_execution_time', 0);
+	ini_set('display_errors', 0);
 }
 	
 class BxMSSQLMModule extends BxBaseModGeneralModule

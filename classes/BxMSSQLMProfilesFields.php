@@ -8,7 +8,7 @@
  *
  * @{
  */
-    
+
 require_once('BxMSSQLMData.php');
 bx_import('BxDolStudioLanguagesUtils');
 
@@ -169,9 +169,9 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 
     public function __construct($oMigrationModule, &$seDb)
     {
-        parent::__construct($oMigrationModule, $seDb);  
+        parent::__construct($oMigrationModule, $seDb);
 		$this -> _sModuleName = 'profile_fields';
-		$this -> _sTableWithTransKey = 'sys_form_inputs';	
+		$this -> _sTableWithTransKey = 'sys_form_inputs';
     }
 
 	public function getTotalRecords()
@@ -179,7 +179,7 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 
 		return sizeof($this -> _aProfileFields);
 	}
-	
+
 	private function transferTablesToPreValues(){
 	    $this -> transferStates();
 	    $this -> transferCities();
@@ -193,11 +193,11 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 	}
 
     public function runMigration()
-	{		 
+	{
 		if (!$this -> getTotalRecords())
 		{
 			$this -> setResultStatus(_t('_bx_mssql_migration_no_data_to_transfer'));
-	        return BX_MIG_SUCCESSFUL;			  
+	        return BX_MIG_SUCCESSFUL;
 		}
 
 		$this -> transferTablesToPreValues();
@@ -213,14 +213,14 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 				   if (!$this -> _oDb -> query("ALTER TABLE `bx_persons_data` ADD {$sTransferName} {$aItem['sql']}")){
 						 $this -> setResultStatus(_t('_bx_mssql_migration_started_migration_profile_field_can_not_be_transferred'));
 						 return BX_MIG_FAILED;
-				   }			   
+				   }
 			}
-			  
+
 			//continue;
 			if ($this -> isFieldTransferred($sTransferName))
 				continue;
-			   
-			$iKeyID = time() + $i++; // unique language keys postfix			
+
+			$iKeyID = time() + $i++; // unique language keys postfix
 			$sQuery = $this -> _oDb -> prepare("
 				INSERT INTO `{$this -> _sTableWithTransKey}` SET
 					`object`	= 'bx_person', 
@@ -238,20 +238,20 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 					'_sys_form_txt_field_caption_system_' . $iKeyID,
 					'_sys_form_txt_field_caption_' . $iKeyID
 					);
-			
+
 			if (!$this -> _oDb -> query($sQuery))
 			{
 				$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_profile_field_can_not_be_transferred'));
-				return BX_MIG_FAILED;				
-			}			   
-			
+				return BX_MIG_FAILED;
+			}
+
 			$iFieldId = $this -> _oDb -> lastId();
 			$this -> setMID($iFieldId, $iFieldId);
-			
-			// create form fields	
+
+			// create form fields
 			$this -> _oDb -> query($sQuery);
-			
-			$sQueryDisplay = "INSERT INTO `sys_form_display_inputs` (`id`, `display_name`, `input_name`, `visible_for_levels`, `active`, `order`) VALUES";			
+
+			$sQueryDisplay = "INSERT INTO `sys_form_display_inputs` (`id`, `display_name`, `input_name`, `visible_for_levels`, `active`, `order`) VALUES";
 			if (!isset($aItem['hidden'])) {
                 $sQueryDisplay .= "(NULL, 'bx_person_view', '{$sTransferName}', 2147483647, 1, 0),";
             }
@@ -262,19 +262,19 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 			// add display for view and add forms
 			$this -> _oDb -> query(trim($sQueryDisplay, ','));
 			// add language keys with translations
-			
+
 			foreach($this -> _aLanguages as $sLangKey => $sValue)
 			{
 				$sTitle = $sTransferName;
 				$this -> _oLanguage -> addLanguageString('_sys_form_txt_field_caption_system_' . $iKeyID, $sTitle, $this -> _aLanguages[$sLangKey], 0, false);
 				$this -> _oLanguage -> addLanguageString('_sys_form_txt_field_caption_' . $iKeyID, $sTitle, $this -> _aLanguages[$sLangKey]);
 			}
-			
+
 				$this -> _iTransferred++;
 		}
-			
+
 		$this -> migrateProfileFieldsInfo();
-			
+
 		$this -> setResultStatus(_t('_bx_mssql_migration_started_migration_profile_fields_finished', $this -> _iTransferred));
 		return BX_MIG_SUCCESSFUL;
 	}
@@ -283,18 +283,18 @@ class BxMSSQLMProfilesFields extends BxMSSQLMData
 	{
 		$sQuery = $this -> _oDb -> prepare("SELECT COUNT(*) FROM `sys_form_inputs` WHERE `object` = 'bx_person' AND `module` = 'custom' AND `name` = ? LIMIT 1", $sName);
 		return (int)$this -> _oDb -> getOne($sQuery) > 0;
-	}        
-			
+	}
+
 	/**
 	* Returns Una profile fields list
 	* @param int $iProfileId profile ID
 	* @return array
-	*/ 
+	*/
 	private function getPersonsFieldValues($iProfileId)
 	{
-		return $this -> _oDb -> getRow("SELECT * FROM `bx_persons_data` WHERE `id` = {$iProfileId} LIMIT 1");			
-	}		
-	
+		return $this -> _oDb -> getRow("SELECT * FROM `bx_persons_data` WHERE `id` = {$iProfileId} LIMIT 1");
+	}
+
 	private function getExpertise($iMigProfileId){
 		$aResult = $this -> _mDb -> getPairs("SELECT
                                             [Expertises].[ID]
@@ -378,7 +378,7 @@ WHERE [USERS].[ID] = 2770
 
 		if (isset($aFiled['function']))
 			return call_user_func_array(array($this, $aFiled['function']), array($iMigId, $aUser));
-		
+
 		/*if (is_array($mixedFiledValue))
 			$aItems = explode(',', $mixedFiledValue);
 		else
@@ -387,19 +387,18 @@ WHERE [USERS].[ID] = 2770
 		$iResult = 0;
 		foreach($aItems as $iKey => $sValue)
 			$iResult += pow(2, (int)$aPairs[$sValue] - 1);*/
-		
+
 		return '';
 	}
 
 	/**
 	* Migrate profile fields values for transferred profiles
-	 *  
+	 *
 	 *  @return void
 	 */
 	private function migrateProfileFieldsInfo()
     {
-		echo "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` <> '' ORDER BY `id` LIMIT 1, 200000";
-        $sQuery = "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` != 0 ORDER BY `id` LIMIT 1, 200000";
+        $sQuery = "SELECT * FROM `sys_accounts` WHERE `{$this -> _sTransferFieldIdent}` != 0 ORDER BY `id`";
         $aAccounts = $this -> _oDb -> getAll($sQuery);
 
 		foreach($aAccounts as $iKey => $aProfile)
@@ -414,7 +413,7 @@ WHERE [USERS].[ID] = 2770
 			{
 				if (!empty($aCurrentMembersValues[$aItem['name']]))
 					continue;
-				
+
 				$sNewField .= "`{$aItem['name']}` = :{$aItem['name']},";
 				$aValues[$aItem['name']] = $this -> convertValues($sFieldName, $aItem, $aProfile[$this -> _sTransferFieldIdent]);
 			}
@@ -423,7 +422,7 @@ WHERE [USERS].[ID] = 2770
 			{
 				$sNewField = trim($sNewField, ',');
 
-			    $sQuery = 
+			    $sQuery =
 				"
 					UPDATE
 						`bx_persons_data`
@@ -432,25 +431,25 @@ WHERE [USERS].[ID] = 2770
 					WHERE
 						`id` = {$iProfileId}
 				";
-				
+
 				$this -> _oDb -> query($sQuery, $aValues);
 			}
-							
-		}	
-	}		
+
+		}
+	}
 
 	public function removeContent()
 	{
 		if (!$this -> _oDb -> isTableExists($this -> _sTableWithTransKey) || !$this -> _oDb -> isFieldExists($this -> _sTableWithTransKey, $this -> _sTransferFieldIdent))
 			return false;
-	
+
 		$aRecords = $this -> _oDb -> getAll("SELECT `ti` . * , `tdi`.`id` AS  `di_id` , `tdi`.`display_name` AS  `display_name` , `tdi`.`visible_for_levels` AS `visible_for_levels` 
 											FROM  `sys_form_display_inputs` AS  `tdi` 
 											LEFT JOIN  `sys_form_inputs` AS  `ti` ON  `tdi`.`input_name` =  `ti`.`name` 
 											WHERE `ti`.`object` =  'bx_person' AND `ti`.`{$this -> _sTransferFieldIdent}` !=0");
 		if (!empty($aRecords))
 		{
-			$iNumber = 0;		
+			$iNumber = 0;
 			foreach($aRecords as $iKey => $aValue)
 			{
 				$sSql = $this -> _oDb -> prepare("DELETE `td`, `tdi` FROM `sys_form_display_inputs` AS `tdi` LEFT JOIN `sys_form_inputs` AS `td` ON `tdi`.`input_name`=`td`.`name` WHERE `td`.`object`='bx_person' AND `td`.`name` = ?", $aValue['name']);
@@ -459,22 +458,22 @@ WHERE [USERS].[ID] = 2770
 					$oLanguage = BxDolStudioLanguagesUtils::getInstance();
 					if(!empty($aValue['caption']))
 						$oLanguage->deleteLanguageString($aValue['caption']);
-					
+
 					if(!empty($aValue['caption_system']))
 						$oLanguage->deleteLanguageString($aValue['caption_system']);
-					
+
 					if(!empty($aValue['info']))
 						$oLanguage->deleteLanguageString($aValue['info']);
-					
+
 					if(!empty($aValue['checker_error']))
 						$oLanguage->deleteLanguageString($aValue['checker_error']);
-				
+
 					(int)$this -> _oDb -> query("ALTER TABLE `bx_persons_data` DROP `{$aValue['name']}`");
-					
+
 					$iNumber++;
 				}
 			}
-		}				
+		}
 
 		parent::removeContent();
 		return $iNumber;
